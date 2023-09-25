@@ -12,7 +12,34 @@ logger = logging.getLogger(__file__)
 
 
 def get_product_list(last_id, client_id, seller_token):
-    """Получить список товаров магазина озон"""
+    """ Retrieves a list of products from the OZON store.
+
+    Args:
+        last_id (str): The last ID of the product.
+        client_id (str): The client ID for authentication.
+        seller_token (str): The seller token for authentication.
+
+    Returns:
+        list: A list of products.
+
+    Raises:
+        HTTPError: If the API call fails.
+
+    Example:
+        >>> get_product_list("123", "client123", "token123")
+        [
+            {
+                "product_id": "123",
+                "product_name": "Product 1"
+            },
+            {
+                "product_id": "456",
+                "product_name": "Product 2"
+            },
+            ...
+        ]
+
+    """
     url = "https://api-seller.ozon.ru/v2/product/list"
     headers = {
         "Client-Id": client_id,
@@ -32,7 +59,20 @@ def get_product_list(last_id, client_id, seller_token):
 
 
 def get_offer_ids(client_id, seller_token):
-    """Получить артикулы товаров магазина озон"""
+    """ Retrieves the offer IDs of the products from the OZON store.
+
+    Args:
+        client_id (str): The client ID for authentication.
+        seller_token (str): The seller token for authentication.
+
+    Returns:
+        list: A list of offer IDs.
+
+    Example:
+        >>> get_offer_ids("client123", "token123")
+        ["offer123", "offer456", ...]
+
+    """
     last_id = ""
     product_list = []
     while True:
@@ -49,7 +89,27 @@ def get_offer_ids(client_id, seller_token):
 
 
 def update_price(prices: list, client_id, seller_token):
-    """Обновить цены товаров"""
+    """ Updates the prices of products.
+
+    Args:
+        prices (list): A list of prices to be updated.
+        client_id (str): The client ID for authentication.
+        seller_token (str): The seller token for authentication.
+
+    Returns:
+        dict: A dictionary containing the response from the API call.
+
+    Raises:
+        HTTPError: If the API call fails.
+
+    Example:
+        >>> update_price([{"product_id": "123", "price": 10.99}], "client123", "token123")
+        {
+            "status": "success",
+            "message": "Prices updated successfully"
+        }
+
+    """
     url = "https://api-seller.ozon.ru/v1/product/import/prices"
     headers = {
         "Client-Id": client_id,
@@ -62,7 +122,27 @@ def update_price(prices: list, client_id, seller_token):
 
 
 def update_stocks(stocks: list, client_id, seller_token):
-    """Обновить остатки"""
+    """ Updates the stocks of products.
+
+    Args:
+        stocks (list): A list of stocks to be updated.
+        client_id (str): The client ID for authentication.
+        seller_token (str): The seller token for authentication.
+
+    Returns:
+        dict: A dictionary containing the response from the API call.
+
+    Raises:
+        HTTPError: If the API call fails.
+
+    Example:
+        >>> update_stocks([{"product_id": "123", "stock": 100}], "client123", "token123")
+        {
+            "status": "success",
+            "message": "Stocks updated successfully"
+        }
+
+    """
     url = "https://api-seller.ozon.ru/v1/product/import/stocks"
     headers = {
         "Client-Id": client_id,
@@ -75,7 +155,26 @@ def update_stocks(stocks: list, client_id, seller_token):
 
 
 def download_stock():
-    """Скачать файл ostatki с сайта casio"""
+    """ Downloads the stock file from the Casio website.
+
+    Returns:
+        list: A list of watch remnants.
+
+    Example:
+        >>> download_stock()
+        [
+            {
+                "Product Name": "Watch 1",
+                "Stock": 10
+            },
+            {
+                "Product Name": "Watch 2",
+                "Stock": 5
+            },
+            ...
+        ]
+
+    """
     # Скачать остатки с сайта
     casio_url = "https://timeworld.ru/upload/files/ostatki.zip"
     session = requests.Session()
@@ -96,6 +195,30 @@ def download_stock():
 
 
 def create_stocks(watch_remnants, offer_ids):
+    """ Creates a list of stocks based on watch remnants and offer IDs.
+
+    Args:
+        watch_remnants (list): A list of watch remnants.
+        offer_ids (list): A list of offer IDs.
+
+    Returns:
+        list: A list of stocks.
+
+    Example:
+        >>> create_stocks(watch_remnants, ["offer123", "offer456"])
+        [
+            {
+                "offer_id": "offer123",
+                "stock": 10
+            },
+            {
+                "offer_id": "offer456",
+                "stock": 0
+            },
+            ...
+        ]
+
+    """
     # Уберем то, что не загружено в seller
     stocks = []
     for watch in watch_remnants:
@@ -116,6 +239,36 @@ def create_stocks(watch_remnants, offer_ids):
 
 
 def create_prices(watch_remnants, offer_ids):
+    """ Creates a list of prices based on watch remnants and offer IDs.
+
+    Args:
+        watch_remnants (list): A list of watch remnants.
+        offer_ids (list): A list of offer IDs.
+
+    Returns:
+        list: A list of prices.
+
+    Example:
+        >>> create_prices(watch_remnants, ["offer123", "offer456"])
+        [
+            {
+                "auto_action_enabled": "UNKNOWN",
+                "currency_code": "RUB",
+                "offer_id": "offer123",
+                "old_price": "0",
+                "price": 10.99
+            },
+            {
+                "auto_action_enabled": "UNKNOWN",
+                "currency_code": "RUB",
+                "offer_id": "offer456",
+                "old_price": "0",
+                "price": 5.99
+            },
+            ...
+        ]
+
+    """
     prices = []
     for watch in watch_remnants:
         if str(watch.get("Код")) in offer_ids:
@@ -131,17 +284,73 @@ def create_prices(watch_remnants, offer_ids):
 
 
 def price_conversion(price: str) -> str:
-    """Преобразовать цену. Пример: 5'990.00 руб. -> 5990"""
+    """ Converts the price to a simplified format.
+
+    Args:
+        price (str): The price to be converted.
+
+    Returns:
+        str: The converted price.
+
+    Example:
+        >>> price_conversion("5'990.00 руб.")
+        "5990"
+
+    """
     return re.sub("[^0-9]", "", price.split(".")[0])
 
 
 def divide(lst: list, n: int):
-    """Разделить список lst на части по n элементов"""
+    """ Divides a list into parts of size n.
+
+    Args:
+        lst (list): The list to be divided.
+        n (int): The size of each part.
+
+    Yields:
+        list: A part of the original list.
+
+    Example:
+        >>> list(divide([1, 2, 3, 4, 5, 6, 7, 8, 9], 3))
+        [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+
+    """
     for i in range(0, len(lst), n):
         yield lst[i : i + n]
 
 
 async def upload_prices(watch_remnants, client_id, seller_token):
+    """ Uploads prices to the OZON store.
+
+    Args:
+        watch_remnants (list): A list of watch remnants.
+        client_id (str): The client ID for authentication.
+        seller_token (str): The seller token for authentication.
+
+    Returns:
+        list: A list of prices.
+
+    Example:
+        >>> await upload_prices(watch_remnants, "client123", "token123")
+        [
+            {
+                "auto_action_enabled": "UNKNOWN",
+                "currency_code": "RUB",
+                "offer_id": "offer123",
+                "old_price": "0",
+                "price": 10.99
+            },
+            {
+                "auto_action_enabled": "UNKNOWN",
+                "currency_code": "RUB",
+                "offer_id": "offer456",
+                "old_price": "0",
+                "price": 5.99
+            },
+            ...
+        ]
+
+    """
     offer_ids = get_offer_ids(client_id, seller_token)
     prices = create_prices(watch_remnants, offer_ids)
     for some_price in list(divide(prices, 1000)):
@@ -150,6 +359,42 @@ async def upload_prices(watch_remnants, client_id, seller_token):
 
 
 async def upload_stocks(watch_remnants, client_id, seller_token):
+    """ Uploads stocks to the OZON store.
+
+    Args:
+        watch_remnants (list): A list of watch remnants.
+        client_id (str): The client ID for authentication.
+        seller_token (str): The seller token for authentication.
+
+    Returns:
+        tuple: A tuple containing two lists - not_empty and stocks.
+               not_empty: A list of non-empty stocks.
+               stocks: A list of all stocks.
+
+    Example:
+        >>> await upload_stocks(watch_remnants, "client123", "token123")
+        (
+            [
+                {
+                    "offer_id": "offer123",
+                    "stock": 10
+                },
+                ...
+            ],
+            [
+                {
+                    "offer_id": "offer123",
+                    "stock": 10
+                },
+                {
+                    "offer_id": "offer456",
+                    "stock": 0
+                },
+                ...
+            ]
+        )
+
+    """
     offer_ids = get_offer_ids(client_id, seller_token)
     stocks = create_stocks(watch_remnants, offer_ids)
     for some_stock in list(divide(stocks, 100)):

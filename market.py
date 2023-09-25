@@ -11,6 +11,23 @@ logger = logging.getLogger(__file__)
 
 
 def get_product_list(page, campaign_id, access_token):
+    """ Retrieves a list of products from the Yandex Market API.
+
+    Args:
+        page (int): The page token to fetch the products from.
+        campaign_id (str): The ID of the campaign.
+        access_token (str): The access token to authenticate the request.
+
+    Returns:
+        dict: The response object containing the list of products.
+
+    Example:
+        >>> get_product_list(1, "123456789", "access_token")
+        {'result': [{'id': '1', 'name': 'Product 1'}, {'id': '2', 'name': 'Product 2'}, ...]}
+
+    Raises:
+        HTTPError: If the API request fails.
+    """
     endpoint_url = "https://api.partner.market.yandex.ru/"
     headers = {
         "Content-Type": "application/json",
@@ -30,6 +47,19 @@ def get_product_list(page, campaign_id, access_token):
 
 
 def update_stocks(stocks, campaign_id, access_token):
+    """ Updates the stocks of products in the Yandex Market API.
+
+    Args:
+        stocks (list): A list of stock objects to update.
+        campaign_id (str): The ID of the campaign.
+        access_token (str): The access token to authenticate the request.
+
+    Returns:
+        dict: The response object containing the updated stocks.
+
+    Raises:
+        HTTPError: If the API request fails.
+    """
     endpoint_url = "https://api.partner.market.yandex.ru/"
     headers = {
         "Content-Type": "application/json",
@@ -46,6 +76,26 @@ def update_stocks(stocks, campaign_id, access_token):
 
 
 def update_price(prices, campaign_id, access_token):
+    """ Updates the prices of products.
+
+    Args:
+        prices (list): A list of prices to be updated.
+        campaign_id (str): The ID of the campaign.
+        access_token (str): The access token to authenticate the request.
+
+    Returns:
+        dict: A dictionary containing the response from the API call.
+
+    Raises:
+        HTTPError: If the API call fails.
+
+    Example:
+        >>> update_price([{"product_id": "123", "price": 10.99}], "client123", "token123")
+        {
+            "status": "success",
+            "message": "Prices updated successfully"
+        }
+    """
     endpoint_url = "https://api.partner.market.yandex.ru/"
     headers = {
         "Content-Type": "application/json",
@@ -62,7 +112,19 @@ def update_price(prices, campaign_id, access_token):
 
 
 def get_offer_ids(campaign_id, market_token):
-    """Получить артикулы товаров Яндекс маркета"""
+    """ Retrieves the offer IDs of the products from the Yandex Market.
+
+    Args:
+        campaign_id (str): The ID of the campaign.
+        market_token (str): The token for authentication.
+
+    Returns:
+        list: A list of offer IDs.
+
+    Example:
+        >>> get_offer_ids("123456789", "market_token")
+        ["offer_id_1", "offer_id_2", ...]
+    """
     page = ""
     product_list = []
     while True:
@@ -78,7 +140,44 @@ def get_offer_ids(campaign_id, market_token):
 
 
 def create_stocks(watch_remnants, offer_ids, warehouse_id):
-    # Уберем то, что не загружено в market
+    """ Creates stock objects for the given watch remnants and offer IDs.
+
+    Args:
+        watch_remnants (list): A list of watch remnants.
+        offer_ids (list): A list of offer IDs.
+        warehouse_id (str): The ID of the warehouse.
+
+    Returns:
+        list: A list of stock objects.
+
+    Example:
+        >>> create_stocks(watch_remnants, ["offer_id_1", "offer_id_2"], "warehouse_id")
+        [
+            {
+                "sku": "watch_sku_1",
+                "warehouseId": "warehouse_id",
+                "items": [
+                    {
+                        "count": 100,
+                        "type": "FIT",
+                        "updatedAt": "2022-01-01T00:00:00Z"
+                    }
+                ]
+            },
+            {
+                "sku": "watch_sku_2",
+                "warehouseId": "warehouse_id",
+                "items": [
+                    {
+                        "count": 0,
+                        "type": "FIT",
+                        "updatedAt": "2022-01-01T00:00:00Z"
+                    }
+                ]
+            },
+            ...
+        ]
+    """
     stocks = list()
     date = str(datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z")
     for watch in watch_remnants:
@@ -123,6 +222,35 @@ def create_stocks(watch_remnants, offer_ids, warehouse_id):
 
 
 def create_prices(watch_remnants, offer_ids):
+    """ Creates price objects for the given watch remnants and offer IDs.
+
+    Args:
+        watch_remnants (list): A list of watch remnants.
+        offer_ids (list): A list of offer IDs.
+
+    Returns:
+        list: A list of price objects.
+
+    Example:
+        >>> create_prices(watch_remnants, ["offer_id_1", "offer_id_2"])
+        [
+            {
+                "id": "watch_sku_1",
+                "price": {
+                    "value": 1000,
+                    "currencyId": "RUR"
+                }
+            },
+            {
+                "id": "watch_sku_2",
+                "price": {
+                    "value": 2000,
+                    "currencyId": "RUR"
+                }
+            },
+            ...
+        ]
+    """
     prices = []
     for watch in watch_remnants:
         if str(watch.get("Код")) in offer_ids:
@@ -143,6 +271,16 @@ def create_prices(watch_remnants, offer_ids):
 
 
 async def upload_prices(watch_remnants, campaign_id, market_token):
+    """ Uploads prices for the given watch remnants to the Yandex Market API.
+
+    Args:
+        watch_remnants (list): A list of watch remnants.
+        campaign_id (str): The ID of the campaign.
+        market_token (str): The token for authentication.
+
+    Returns:
+        list: A list of price objects that were uploaded.
+    """
     offer_ids = get_offer_ids(campaign_id, market_token)
     prices = create_prices(watch_remnants, offer_ids)
     for some_prices in list(divide(prices, 500)):
@@ -151,6 +289,17 @@ async def upload_prices(watch_remnants, campaign_id, market_token):
 
 
 async def upload_stocks(watch_remnants, campaign_id, market_token, warehouse_id):
+    """ Uploads stocks for the given watch remnants to the Yandex Market API.
+
+    Args:
+        watch_remnants (list): A list of watch remnants.
+        campaign_id (str): The ID of the campaign.
+        market_token (str): The token for authentication.
+        warehouse_id (str): The ID of the warehouse.
+
+    Returns:
+        tuple: A tuple containing two lists - the not empty stocks and all stocks.
+    """
     offer_ids = get_offer_ids(campaign_id, market_token)
     stocks = create_stocks(watch_remnants, offer_ids, warehouse_id)
     for some_stock in list(divide(stocks, 2000)):
